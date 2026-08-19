@@ -1,0 +1,6 @@
+echo "pytest" >> requirements.txt
+
+cat > pytest.ini << 'EOF'
+[pytest]
+pythonpath = .
+EOF
