@@ -1,26 +1,34 @@
+import logging
 import time
 
-from src.simulation.engine_ecu import EngineECU
+from config.logging_config import configure_logging
+from src.simulation.ecu_manager import ECUManager
 
 
-def main():
+def main() -> None:
+    """Start CAN-Sentinel ECU simulation."""
 
-    print("===== CAN Sentinel =====")
+    configure_logging()
 
-    engine = EngineECU()
+    logger = logging.getLogger(__name__)
 
-    engine.start_ecu()
+    logger.info("===== CAN-Sentinel =====")
+    logger.info("Starting vehicle simulation...")
+
+    manager = ECUManager()
+
+    manager.start_all()
 
     try:
-
         while True:
             time.sleep(1)
 
     except KeyboardInterrupt:
+        logger.info("Shutdown requested by user.")
 
-        engine.stop_ecu()
-
-        print("\nStopped.")
+    finally:
+        manager.stop_all()
+        logger.info("CAN-Sentinel stopped.")
 
 
 if __name__ == "__main__":
