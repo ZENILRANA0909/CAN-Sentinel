@@ -1,5 +1,6 @@
 import logging
 
+from src.networking.can_interface import CANInterface
 from src.simulation.base_ecu import BaseECU
 from src.simulation.engine_ecu import EngineECU
 from src.simulation.brake_ecu import BrakeECU
@@ -15,20 +16,21 @@ class ECUManager:
     """
     Manages all simulated vehicle ECUs.
 
-    The manager is responsible for:
-    - Creating ECUs
-    - Starting ECUs
-    - Stopping ECUs
-    - Reporting ECU status
+    A single CANInterface is shared by every ECU so that all
+    ECUs communicate through the same virtual CAN bus.
     """
 
     def __init__(self):
+        # Create ONE shared CAN interface.
+        self.bus = CANInterface()
+
+        # Pass the same bus to every ECU.
         self.ecus: list[BaseECU] = [
-            EngineECU(),
-            BrakeECU(),
-            SpeedECU(),
-            SteeringECU(),
-            DoorECU(),
+            EngineECU(self.bus),
+            BrakeECU(self.bus),
+            SpeedECU(self.bus),
+            SteeringECU(self.bus),
+            DoorECU(self.bus),
         ]
 
     def start_all(self) -> None:
@@ -37,8 +39,7 @@ class ECUManager:
         logger.info("Starting all ECUs...")
 
         for ecu in self.ecus:
-            if not ecu.is_alive():
-                ecu.start_ecu()
+            ecu.start_ecu()
 
         logger.info("All ECUs started.")
 
@@ -53,15 +54,16 @@ class ECUManager:
         logger.info("All ECUs stopped.")
 
     def get_status(self) -> dict[str, str]:
-        """
-        Return the current status of every ECU.
-        """
+        """Return the current status of every ECU."""
 
-        status = {}
-
-        for ecu in self.ecus:
-            status[ecu.ecu_name] = (
+        return {
+            ecu.ecu_name: (
                 "Running" if ecu.running else "Stopped"
             )
+            for ecu in self.ecus
+        }
 
-        return status
+    def get_ecus(self) -> list[BaseECU]:
+        """Return all managed ECUs."""
+
+        return self.ecus

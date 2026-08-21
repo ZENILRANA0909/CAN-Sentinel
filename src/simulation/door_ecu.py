@@ -1,3 +1,4 @@
+from src.networking.can_interface import CANInterface
 from src.simulation.base_ecu import BaseECU
 from src.utils.constants import DOOR_ECU_ID
 from src.utils.helpers import generate_door_status
@@ -18,10 +19,11 @@ class DoorECU(BaseECU):
         Remaining bytes: Reserved.
     """
 
-    def __init__(self):
+    def __init__(self, bus: CANInterface):
         super().__init__(
             ecu_name="Door ECU",
             can_id=DOOR_ECU_ID,
+            bus=bus,
             interval=2.0,
         )
 

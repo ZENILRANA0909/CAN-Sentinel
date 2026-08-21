@@ -1,3 +1,4 @@
+from src.networking.can_interface import CANInterface
 from src.simulation.base_ecu import BaseECU
 from src.utils.constants import BRAKE_ECU_ID
 from src.utils.helpers import generate_brake_pressure
@@ -16,10 +17,11 @@ class BrakeECU(BaseECU):
         Remaining bytes: Reserved
     """
 
-    def __init__(self):
+    def __init__(self, bus: CANInterface):
         super().__init__(
             ecu_name="Brake ECU",
             can_id=BRAKE_ECU_ID,
+            bus=bus,
             interval=1.0,
         )
 
@@ -28,7 +30,7 @@ class BrakeECU(BaseECU):
 
         brake_pressure = generate_brake_pressure()
 
-        # ABS is considered active when brake pressure is high.
+        # ABS activates at high brake pressure.
         abs_status = 1 if brake_pressure >= 80 else 0
 
         return [
