@@ -24,30 +24,33 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "pip"
 
-      - name: Show Python version
+      - name: Show environment
         run: |
           python --version
           python -m pip --version
+          pwd
+          ls -la
 
-      - name: Upgrade pip
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-
-      - name: Install project dependencies
-        run: |
           python -m pip install -r requirements.txt
+          python -m pip install pytest
 
-      - name: Verify pytest installation
+      - name: Verify dependencies
         run: |
+          python -m pip show python-can
           python -m pip show pytest
-          python -m pytest --version
 
-      - name: Compile source code
+      - name: Compile source
         run: |
           python -m compileall src config tests main.py
 
-      - name: Run unit tests
+      - name: Collect tests
         run: |
-          python -m pytest tests -v
+          python -m pytest tests --collect-only -vv
+
+      - name: Run tests
+        run: |
+          python -m pytest tests -vv -s
