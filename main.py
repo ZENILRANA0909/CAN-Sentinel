@@ -2,22 +2,22 @@ import logging
 import time
 
 from config.logging_config import configure_logging
-from src.simulation.ecu_manager import ECUManager
+from src.networking.can_system import CANSystem
 
 
 def main() -> None:
-    """Start CAN-Sentinel ECU simulation."""
+    """Start the complete CAN-Sentinel system."""
 
     configure_logging()
 
     logger = logging.getLogger(__name__)
 
     logger.info("===== CAN-Sentinel =====")
-    logger.info("Starting vehicle simulation...")
+    logger.info("Starting CAN monitoring system...")
 
-    manager = ECUManager()
+    system = CANSystem()
 
-    manager.start_all()
+    system.start()
 
     try:
         while True:
@@ -27,7 +27,7 @@ def main() -> None:
         logger.info("Shutdown requested by user.")
 
     finally:
-        manager.stop_all()
+        system.stop()
         logger.info("CAN-Sentinel stopped.")
 
 
