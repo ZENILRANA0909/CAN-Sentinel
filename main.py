@@ -6,7 +6,7 @@ from src.networking.can_system import CANSystem
 
 
 def main() -> None:
-    """Start the complete CAN-Sentinel system."""
+    """Start CAN-Sentinel and demonstrate CAN attack detection."""
 
     configure_logging()
 
@@ -20,8 +20,24 @@ def main() -> None:
     system.start()
 
     try:
-        while True:
-            time.sleep(1)
+        logger.info("Normal CAN traffic is running.")
+
+        # Allow normal traffic to run first.
+        time.sleep(5)
+
+        # Start the fake-speed attack.
+        logger.warning("===== STARTING FAKE SPEED ATTACK =====")
+        system.start_fake_speed_attack()
+
+        # Keep the attack active for demonstration.
+        time.sleep(5)
+
+        # Stop the attack.
+        logger.warning("===== STOPPING FAKE SPEED ATTACK =====")
+        system.stop_fake_speed_attack()
+
+        # Allow normal traffic to continue.
+        time.sleep(3)
 
     except KeyboardInterrupt:
         logger.info("Shutdown requested by user.")

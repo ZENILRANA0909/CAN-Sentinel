@@ -11,11 +11,16 @@ logger = logging.getLogger(__name__)
 
 class CANTrafficMonitor:
     """
-    Connects the CAN receiver with the CAN traffic logger.
+    Monitors received CAN traffic and classifies messages.
 
-    Every received CAN frame is automatically forwarded to
-    the logger and stored in the configured CSV file.
+    Current detection rules:
+    - CAN ID 0x300 with speed >= 200 is classified
+      as a Fake Speed Attack.
+    - All other messages are classified as Normal.
     """
+
+    SPEED_CAN_ID = 0x300
+    FAKE_SPEED_THRESHOLD = 200
 
     def __init__(
         self,
@@ -25,20 +30,42 @@ class CANTrafficMonitor:
         self.receiver = receiver
         self.logger = logger_instance
 
-        self.receiver.callback = self._handle_message
+        # Register this monitor as the receiver callback.
+        self.receiver.callback = self.process_message
 
-    def _handle_message(self, message: can.Message) -> None:
+    def process_message(self, message: can.Message) -> None:
         """
-        Process a received CAN frame and store it in the log.
+        Analyze and classify a received CAN message.
         """
 
-        try:
-            self.logger.log_message(
-                message,
-                attack_label="Normal",
+        attack_label = self.detect_attack(message)
+
+        if attack_label != "Normal":
+            logger.warning(
+                "ATTACK DETECTED: %s | CAN ID=%s | DATA=%s",
+                attack_label,
+                hex(message.arbitration_id),
+                list(message.data),
             )
 
-        except Exception:
-            logger.exception(
-                "Failed to log CAN message."
-            )
+        self.logger.log_message(
+            message,
+            attack_label=attack_label,
+        )
+
+    def detect_attack(self, message: can.Message) -> str:
+        """
+        Detect known suspicious CAN traffic.
+
+        Returns:
+            Attack label or 'Normal'.
+        """
+
+        if (
+            message.arbitration_id == self.SPEED_CAN_ID
+            and message.dlc >= 1
+            and message.data[0] >= self.FAKE_SPEED_THRESHOLD
+        ):
+            return "Fake Speed Attack"
+
+        return "Normal"

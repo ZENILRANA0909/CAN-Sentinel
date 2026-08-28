@@ -18,26 +18,21 @@ class CANSystem:
     """
 
     def __init__(self):
-        # Create the ECU manager and shared CAN bus.
         self.ecu_manager = ECUManager()
 
-        # Create the CAN receiver.
         self.receiver = CANReceiver(
             self.ecu_manager.bus
         )
 
-        # Create the CAN traffic logger.
         self.can_logger = CANLogger(
             CSV_LOG_FILE
         )
 
-        # Create the traffic monitor.
         self.monitor = CANTrafficMonitor(
             receiver=self.receiver,
             logger_instance=self.can_logger,
         )
 
-        # Create the attack manager using the same CAN bus.
         self.attack_manager = AttackManager(
             self.ecu_manager.bus
         )
@@ -47,29 +42,26 @@ class CANSystem:
 
         logger.info("Starting CAN-Sentinel system.")
 
-        # Start receiver before ECUs.
         self.receiver.start()
-
-        # Start all simulated ECUs.
         self.ecu_manager.start_all()
 
         logger.info("CAN-Sentinel system started.")
 
     def stop(self) -> None:
-        """Stop attacks, ECUs, receiver, and CAN bus safely."""
+        """Stop attacks, ECUs, receiver, and CAN bus."""
 
         logger.info("Stopping CAN-Sentinel system.")
 
-        # Stop all active attacks first.
+        # Stop attacks first.
         self.attack_manager.stop_all()
 
-        # Stop ECUs so they cannot send new frames.
+        # Stop simulated ECUs.
         self.ecu_manager.stop_all()
 
-        # Stop the receiver thread.
+        # Stop CAN receiver.
         self.receiver.stop()
 
-        # Shut down the shared CAN bus.
+        # Shut down CAN bus.
         try:
             self.ecu_manager.bus.shutdown()
             logger.info("CAN bus shut down successfully.")
@@ -77,6 +69,18 @@ class CANSystem:
             logger.exception("Error shutting down CAN bus.")
 
         logger.info("CAN-Sentinel system stopped.")
+
+    def start_fake_speed_attack(self) -> None:
+        """Start the fake-speed CAN attack."""
+
+        logger.warning("Starting Fake Speed Attack.")
+        self.attack_manager.start_fake_speed()
+
+    def stop_fake_speed_attack(self) -> None:
+        """Stop the fake-speed CAN attack."""
+
+        logger.warning("Stopping Fake Speed Attack.")
+        self.attack_manager.stop_fake_speed()
 
     def get_ecu_status(self) -> dict[str, str]:
         """Return the status of all simulated ECUs."""
