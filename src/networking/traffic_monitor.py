@@ -1,71 +1,84 @@
-import logging
+from typing import Optional
 
-import can
-
-from src.logging.can_logger import CANLogger
 from src.networking.can_receiver import CANReceiver
-
-
-logger = logging.getLogger(__name__)
+from src.logging.can_logger import CANLogger
 
 
 class CANTrafficMonitor:
     """
-    Monitors received CAN traffic and classifies messages.
-
-    Current detection rules:
-    - CAN ID 0x300 with speed >= 200 is classified
-      as a Fake Speed Attack.
-    - All other messages are classified as Normal.
+    Monitors CAN traffic and detects suspicious traffic patterns.
     """
-
-    SPEED_CAN_ID = 0x300
-    FAKE_SPEED_THRESHOLD = 200
 
     def __init__(
         self,
-        receiver: CANReceiver,
+        receiver: Optional[CANReceiver],
         logger_instance: CANLogger,
     ):
         self.receiver = receiver
         self.logger = logger_instance
 
-        # Register this monitor as the receiver callback.
-        self.receiver.callback = self.process_message
+        # Track repeated messages for CAN flood detection.
+        self.flood_id = 0x555
+        self.flood_count = 0
+        self.flood_threshold = 20
 
-    def process_message(self, message: can.Message) -> None:
+        # Register callback only when a receiver is provided.
+        if self.receiver is not None:
+            self.receiver.callback = self.process_message
+
+    def process_message(self, message):
         """
-        Analyze and classify a received CAN message.
+        Process a received CAN message and log the detection result.
         """
-
-        attack_label = self.detect_attack(message)
-
-        if attack_label != "Normal":
-            logger.warning(
-                "ATTACK DETECTED: %s | CAN ID=%s | DATA=%s",
-                attack_label,
-                hex(message.arbitration_id),
-                list(message.data),
-            )
+        detection = self.detect_attack(message)
 
         self.logger.log_message(
             message,
-            attack_label=attack_label,
+            detection,
         )
 
-    def detect_attack(self, message: can.Message) -> str:
-        """
-        Detect known suspicious CAN traffic.
+        return detection
 
-        Returns:
-            Attack label or 'Normal'.
+    def detect_attack(self, message):
+        """
+        Detect known CAN attack patterns.
+
+        Fake Speed Attack:
+            CAN ID 0x300 with first data byte 0xFA.
+
+        CAN Flood Attack:
+            20 or more repeated messages using CAN ID 0x555.
         """
 
+        arbitration_id = message.arbitration_id
+        data = list(message.data)
+
+        # Fake Speed Attack
         if (
-            message.arbitration_id == self.SPEED_CAN_ID
-            and message.dlc >= 1
-            and message.data[0] >= self.FAKE_SPEED_THRESHOLD
+            arbitration_id == 0x300
+            and len(data) > 0
+            and data[0] == 0xFA
         ):
             return "Fake Speed Attack"
 
+        # CAN Flood Attack
+        if arbitration_id == self.flood_id:
+            self.flood_count += 1
+
+            if self.flood_count >= self.flood_threshold:
+                return "CAN Flood Attack"
+        else:
+            self.flood_count = 0
+
+        # Normal traffic
         return "Normal"
+
+    def start(self):
+        """Start the CAN receiver if one is configured."""
+        if self.receiver is not None:
+            self.receiver.start()
+
+    def stop(self):
+        """Stop the CAN receiver if one is configured."""
+        if self.receiver is not None:
+            self.receiver.stop()
