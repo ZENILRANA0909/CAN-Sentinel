@@ -1,0 +1,2 @@
+This directory holds rotating application logs at runtime. Its contents are
+ignored by git; the directory itself is tracked so a fresh clone can write here.

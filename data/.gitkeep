@@ -1,0 +1,2 @@
+This directory holds the SQLite database at runtime. Its contents are ignored
+by git; the directory itself is tracked so a fresh clone has somewhere to write.

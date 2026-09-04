@@ -1,3 +1,0 @@
-"""
-CAN-Sentinel logging package.
-"""
